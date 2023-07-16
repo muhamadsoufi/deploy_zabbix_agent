@@ -1,0 +1,77 @@
+- name: Download Zabbix repository package
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '22'
+  get_url:
+    url: https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.0-4+ubuntu22.04_all.deb
+    dest: /tmp/zabbix-release.deb
+
+- name: Download Zabbix repository package
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version == '20'
+  get_url:
+    url: https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.0-4+ubuntu20.04_all.deb
+    dest: /tmp/zabbix-release.deb
+
+
+
+- name: Install Zabbix repository package
+  command: dpkg -i /tmp/zabbix-release.deb
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install Zabbix agent packages
+  apt:
+    name:
+      - zabbix-agent
+      - zabbix-agent2
+    state: present
+
+
+- name: Update Zabbix agent configuration
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^Server='
+    line: 'Server={{ zabbix_server_ip }}'
+
+- name: Update Zabbix agent2 configuration
+  lineinfile:
+    path: /etc/zabbix/zabbix_agent2.conf
+    regexp: '^Server='
+    line: 'Server={{ zabbix_server_ip }}'
+
+
+
+- name: Update Zabbix agent hostname
+  lineinfile:
+    path: /etc/zabbix/zabbix_agentd.conf
+    regexp: '^Hostname='
+    line: 'Hostname={{ ansible_hostname }}'
+  notify: restart zabbix-agent
+
+
+- name: Update Zabbix agent hostname
+  lineinfile:
+    path: /etc/zabbix/zabbix_agent2.conf
+    regexp: '^Hostname='
+    line: 'Hostname={{ ansible_hostname }}'
+  notify: restart zabbix-agent2
+
+
+- name: Allow incoming connections on port 10050
+  ufw:
+    rule: allow
+    port: 10050
+
+- name: Allow incoming connections on port 10051
+  ufw:
+    rule: allow
+    port: 10051
+
+#- name: reboot
+#  reboot:
+#    reboot_timeout: 300
+#    test_command: uptime
+#  async: 0
+#  poll: 0
+#  tags:
+#    - reboot_them

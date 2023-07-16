@@ -1,0 +1,5 @@
+- hosts: linux-server
+  become: yes
+  gather_facts: true
+  roles:
+    - provision
